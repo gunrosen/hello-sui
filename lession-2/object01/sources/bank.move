@@ -4,6 +4,7 @@ module object01::HULK {
     use sui::object::{Self, UID};
     use sui::tx_context::{Self, TxContext};
     use sui::transfer;
+    use sui::dynamic_object_field as dof;
 
     struct Bank has key{
         id: UID,
@@ -21,6 +22,12 @@ module object01::HULK {
 
     struct Pool has key {
         id: UID,
+        balance: u128,
+    }
+
+    struct Card has key, store {
+        id: UID,
+        name: vector<u8>,
         balance: u128,
     }
 
@@ -52,13 +59,13 @@ module object01::HULK {
     }
     // Pass ObjectId of Bank
     // Sender should be owner of Bank
-    public entry fun create_account(_: &Bank, name: vector<u8>,ctx: &mut TxContext){
+    public entry fun create_account(_: &Bank, name: vector<u8>, receipt: address, ctx: &mut TxContext){
         let account = Account{
             id: object::new(ctx),
             name,
             balance: 0,
         };
-        transfer::transfer(account,tx_context::sender(ctx));
+        transfer::transfer(account,receipt);
     }
 
     public entry fun delete_account(account : Account){
@@ -70,6 +77,15 @@ module object01::HULK {
         account.balance + amount;
     }
 
+    public entry fun add_dof(name: vector<u8>, account: &mut Account, ctx: &mut TxContext){
+        let card = Card {
+            id: object::new(ctx),
+            name,
+            balance: 0
+        };
+
+        dof::add(&mut account.id,b"Master card", card);
+    }
  
 
     // READ
