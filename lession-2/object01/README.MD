@@ -49,4 +49,20 @@ sui client call --package 0xbd47883d3f587bac6aa86bfe226ce9e8b2ad6d337e0bda5f3848
  Transaction was not signed by the correct sender: Object 0x391d7fd9ccbe0ca0153e04bad183edae6222ad32480613b730f4a2d052165bf8 is owned by account address 0x506a8ade0c519c61182f0e3ded568122de5d256018d03f4378c4e0784192f8de, but given owner/signer address is 0x48e52f6fcc0b4a308e3c078e770f0426c0435984be5d2ec5c09a93607e52fa70.", data: None }
 ```
 
-### Version 3: create shared object 
+### Version 3: create shared object, delete object
+
+```text
+  - ID: 0x2eacd87d86e35af6ff069caf58b6d5645f2c21e9762a21d8ad5ec2d9c83019a4 , Owner: Immutable
+0xb13d0a49bb898b2ced4feaf039d43e45d5a34d985cf4cdc2259f14db4cc5cbe8 --> BANK
+```
+
+```text
+Create account
+sui client call --package 0x2eacd87d86e35af6ff069caf58b6d5645f2c21e9762a21d8ad5ec2d9c83019a4 --module HULK --function create_account --args 0xb13d0a49bb898b2ced4feaf039d43e45d5a34d985cf4cdc2259f14db4cc5cbe8 b"Hulk_user_account"   --gas-budget 3000000000
+
+Created Objects:
+  - ID: 0xc7e7c914f755806d642340b383d5ae3c53e30dd3ca3e1ebbe6f2a4cf36de2b0c , Owner: Account Address ( 0x48e52f6fcc0b4a308e3c078e770f0426c0435984be5d2ec5c09a93607e52fa70 )
+
+sui client call --package 0x2eacd87d86e35af6ff069caf58b6d5645f2c21e9762a21d8ad5ec2d9c83019a4 --module HULK --function delete_account --args 0xc7e7c914f755806d642340b383d5ae3c53e30dd3ca3e1ebbe6f2a4cf36de2b0c  --gas-budget 3000000000
+```
+

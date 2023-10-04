@@ -61,5 +61,19 @@ module object01::HULK {
         transfer::transfer(account,tx_context::sender(ctx));
     }
 
+    public entry fun delete_account(account : Account){
+        let Account{id, name: _, balance: _} = account;
+        object::delete(id);
+    }
 
+    public entry fun increase_balance(account : &mut Account, amount: u128){
+        account.balance + amount;
+    }
+
+ 
+
+    // READ
+    public entry fun view_balance(account: &Account):u128 {
+        account.balance
+    }
 }
