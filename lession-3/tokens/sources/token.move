@@ -5,8 +5,14 @@ module tokens::TOKEN {
     use sui::tx_context::{Self, TxContext};
     use sui::transfer;
     use std::string;
-    
+    use sui::event;
+
     struct TOKEN has drop {}
+
+    struct EventMintToken has copy, drop{
+        success: bool,
+        amount: u64
+    }
 
    fun init(witness: TOKEN, ctx: &mut TxContext){ 
         let (treasury_cap, metadata) = coin::create_currency<TOKEN>(
@@ -27,6 +33,10 @@ module tokens::TOKEN {
 
     public entry fun mint(treasury_cap: &mut TreasuryCap<TOKEN>, amount: u64, receiver: address, ctx: &mut TxContext){
         coin::mint_and_transfer(treasury_cap,amount, receiver, ctx );
+        event::emit(EventMintToken{
+            success: true,
+            amount: amount
+        })
     }
 
     public entry fun burn(treasury_cap: &mut TreasuryCap<TOKEN>,coin: Coin<TOKEN>){
