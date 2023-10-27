@@ -257,7 +257,7 @@ module game_hero::hero {
 
     #[test_only]
     public fun delete_hero_for_testing(hero: Hero) {
-        let Hero { id, hp: _, experience: _, sword, game_id: _ } = hero;
+        let Hero { id, hp: _, experience: _, sword, game_id: _ , mana: _} = hero;
         object::delete(id);
         let sword = option::destroy_some(sword);
         let Sword { id, magic: _, strength: _, game_id: _ } = sword;
