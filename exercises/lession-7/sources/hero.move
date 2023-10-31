@@ -59,7 +59,9 @@ module game_hero::hero {
         monster: ID,
         game_id: ID,
     }
-
+    fun init(ctx: &mut TxContext) {
+        init_game(ctx)
+    }
     #[allow(unused_function)]
     public fun init_game(ctx: &mut TxContext) {
         // Create a new game with Info & Admin

@@ -26,6 +26,9 @@ module game_hero::sea_hero {
     const EINVALID_MONSTER_SUPPLY: u64 = 2;
 
     fun init(ctx: &mut TxContext) {
+        init_game(ctx)
+    }
+    public fun init_game(ctx: &mut TxContext) {
         // create a game token with the name is VBI_TOKEN
         let seaAdmin = SeaHeroAdmin {
                 id: object::new(ctx),
