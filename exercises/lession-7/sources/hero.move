@@ -1,6 +1,5 @@
 module game_hero::hero {
     use sui::object::{Self, UID, ID};
-    use std::string::{Self, String};
     use sui::tx_context::{Self, TxContext};
     use std::option::{Self, Option};
     use sui::coin::{Self, Coin};
@@ -31,12 +30,6 @@ module game_hero::hero {
         game_id: ID,
     }
 
-    struct Armor has key,store {
-        id: UID,
-        guard: u64,
-        game_id: ID,
-    }
-
     struct Monster has key {
         id: UID,
         hp: u64,
@@ -56,7 +49,9 @@ module game_hero::hero {
         game_id: ID,
     }
 
-    const EWonMonster: u64 = 1;
+    const EWonMonster: u64 = 0;
+    const EHero1Won: u64 = 1;
+    const EHero2Won: u64 = 2;
 
     struct MonsterSlainEvent has copy, drop {
         slayer_address: address,
@@ -66,7 +61,7 @@ module game_hero::hero {
     }
 
     #[allow(unused_function)]
-    fun init(ctx: &mut TxContext) {
+    public fun init_game(ctx: &mut TxContext) {
         // Create a new game with Info & Admin
         let game_info = GameInfo {
             id: object::new(ctx),
@@ -88,9 +83,9 @@ module game_hero::hero {
     }
 
     // --- Gameplay ---
+    /// Completed this code to hero can attack Monter
+     /// after attack, if success hero will up_level hero, up_level_sword and up_level_armor.
     public entry fun attack(game: &GameInfo, hero: &mut Hero, monter: Monster, ctx: &TxContext) {
-        /// Completed this code to hero can attack Monter
-        /// after attack, if success hero will up_level hero, up_level_sword and up_level_armor.
         assert!(object::id(game) == hero.game_id, 403);
         assert!(object::id(game) == monter.game_id, 403);
         let Monster { id: monster_id, strength: monster_strength, hp, game_id: _ } = monter;
@@ -118,9 +113,31 @@ module game_hero::hero {
         object::delete(monster_id);
     }
 
-    public entry fun p2p_play(game: &GameInfo, hero1: &mut Hero, hero2: &mut Hero, ctx: &TxContext) {
+    public entry fun p2p_play(game: &GameInfo, hero1: &mut Hero, hero2: &mut Hero, _ctx: &TxContext) {
+        assert!(object::id(game) == hero1.game_id, 403);
+        assert!(object::id(game) == hero2.game_id, 403);
+        let hero1_hp = hero1.hp;
+        let hero2_hp = hero2.hp;
+        let hero1_strength = hero_strength(hero1);
+        let hero2_strength = hero_strength(hero2);
+        while(hero1_hp > 0 && hero2_hp > 0){
+            if (hero1_hp > hero2_strength) {
+                hero1_hp = hero1_hp - hero2_strength;
+            } else {
+                destroy_hero(game, hero1);
+                abort EHero2Won
+            };
 
+            if (hero2_hp > hero1_strength) {
+                hero2_hp = hero2_hp - hero1_strength;
+            } else {
+                destroy_hero(game, hero2);
+                abort EHero1Won       
+            }   
+        };
     }
+
+
 
     public fun up_level_hero(hero: &mut Hero) {
         hero.level = hero.level + 1
@@ -130,7 +147,6 @@ module game_hero::hero {
         if (hero.hp == 0) {
             return 0
         };
-
         let sword_strength = if (option::is_some(&hero.sword)) {
             sword_strength(option::borrow(&hero.sword))
         } else {
@@ -139,13 +155,13 @@ module game_hero::hero {
         (hero.experience * hero.hp) + sword_strength
     }
 
+    /// up power/strength for sword
     fun level_up_sword(sword: &mut Sword, amount: u64) {
-        // up power/strength for sword
          sword.strength = sword.strength + amount
     }
 
+    /// calculator strength of sword follow magic + strength
     public fun sword_strength(sword: &Sword): u64 {
-        // calculator strength of sword follow magic + strength
         sword.magic + sword.strength
     }
 
@@ -157,14 +173,15 @@ module game_hero::hero {
         hero.hp = hero.hp + potency;
     }
 
+    // change another sword
     public fun equip_sword(hero: &mut Hero, new_sword: Sword): Option<Sword> {
-        // change another sword
          option::swap_or_fill(&mut hero.sword, new_sword)
     }
 
-    // --- Object creation ---
+    /// --- Object creation ---
+    /// Create a sword, streight depends on payment amount
     public fun create_sword(game: &GameInfo, payment: Coin<SUI>, ctx: &mut TxContext): Sword {
-        // Create a sword, streight depends on payment amount
+
         let value = coin::value(&payment);
         let sword = Sword {
             id: object::new(ctx),
@@ -179,7 +196,6 @@ module game_hero::hero {
     public entry fun acquire_hero(
         game: &GameInfo, payment: Coin<SUI>, ctx: &mut TxContext
     ) {
-        // call function create_armor
         // call function create_sword
         // call function create_hero
         let sword = create_sword(game, payment, ctx);
@@ -202,6 +218,11 @@ module game_hero::hero {
         hero
     }
 
+    public fun destroy_hero(game: &GameInfo, hero: &mut Hero) {
+        assert!(hero.game_id == object::id(game), 403);
+        hero.hp = 0;
+    }
+
     public entry fun send_potion(game: &GameInfo, payment: Coin<SUI>, player: address, ctx: &mut TxContext) {
         // send potion to hero, so that hero can healing
         let potency = coin::value(&payment) * 10;
@@ -213,7 +234,7 @@ module game_hero::hero {
     }
 
     // Admin function
-    public entry fun send_monter(game: &GameInfo, admin: &mut GameAdmin, hp: u64, strength: u64, player: address, ctx: &mut TxContext) {
+    public entry fun send_monster(game: &GameInfo, admin: &mut GameAdmin, hp: u64, strength: u64, player: address, ctx: &mut TxContext) {
         // send monter to hero to attacks
         assert!(object::id(game) == admin.game_id, 403);
         admin.monster_created = admin.monster_created + 1;
