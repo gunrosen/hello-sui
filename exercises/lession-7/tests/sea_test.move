@@ -9,6 +9,7 @@ module game_hero::hero_test {
         use sui::test_scenario;
         use game_hero::hero::{Self, GameInfo, GameAdmin, Hero, Monster};
 
+
         let admin = @0xAD111;
         let player = @0x113;
 
@@ -63,6 +64,7 @@ module game_hero::hero_test {
         use game_hero::sea_hero::{Self, SeaHeroAdmin, SeaMonster};
         use game_hero::hero::{Self, GameInfo, Hero};
         use sui::balance;
+        use sui::transfer;
 
         let admin = @0xAD111;
         let player = @0x113;
@@ -72,8 +74,8 @@ module game_hero::hero_test {
 
         test_scenario::next_tx(scenario, admin);
         {
+            hero::init_game(test_scenario::ctx(scenario));
             sea_hero::init_game(test_scenario::ctx(scenario));
-
         };
 
         test_scenario::next_tx(scenario, player);
@@ -102,7 +104,7 @@ module game_hero::hero_test {
             let reward = sea_hero::monster_reward(&monster);
             let monster_reward = sea_hero::slay(&mut hero, monster);
             assert!(balance::value(&monster_reward) == reward, 1);
-
+            transfer::public_transfer(coin::from_balance(monster_reward, test_scenario::ctx(scenario)), player);
             test_scenario::return_to_sender(scenario, hero);
             // test_scenario::return_to_sender(scenario, monster_reward);
             test_scenario::return_immutable(game);
@@ -123,6 +125,7 @@ module game_hero::hero_test {
         use game_hero::sea_hero::{Self, SeaHeroAdmin, SeaMonster, VBI_TOKEN};
         use game_hero::hero::{Self, GameInfo, Hero};
         use game_hero::sea_hero_helper::{Self, HelpMeSlayThisMonster};
+        use sui::transfer;
 
         let admin = @0xAD111;
         let player = @0x113;
@@ -132,8 +135,8 @@ module game_hero::hero_test {
 
         test_scenario::next_tx(scenario, admin);
         {
+            hero::init_game(test_scenario::ctx(scenario));
             sea_hero::init_game(test_scenario::ctx(scenario));
-
         };
 
         test_scenario::next_tx(scenario, player);
@@ -157,15 +160,18 @@ module game_hero::hero_test {
 
         test_scenario::next_tx(scenario, player);
         {
-            let hero = test_scenario::take_from_sender<Hero>(scenario);
-            let hero_ref = &hero;
+        
             let sea_monster = test_scenario::take_from_sender<SeaMonster>(scenario);
-            sea_hero_helper::create_help(sea_monster, 100, player, test_scenario::ctx(scenario));
+            sea_hero_helper::create_help(sea_monster, 6, player, test_scenario::ctx(scenario));
+        };
+          test_scenario::next_tx(scenario, player);
+        {
+            let hero = test_scenario::take_from_sender<Hero>(scenario);
             let helper_wrapper = test_scenario::take_from_sender<HelpMeSlayThisMonster>(scenario);
-            let coin: Coin<VBI_TOKEN> = sea_hero_helper::attack(hero_ref, helper_wrapper, test_scenario::ctx(scenario));
+            let coin: Coin<VBI_TOKEN> = sea_hero_helper::attack(&hero, helper_wrapper, test_scenario::ctx(scenario));
+  
+            transfer::public_transfer(coin, player);
             test_scenario::return_to_sender<Hero>(scenario,hero);
-            test_scenario::return_to_sender(scenario, coin);
-         
         };
 
         test_scenario::end(scenario_val);
@@ -177,7 +183,7 @@ module game_hero::hero_test {
         // - create hero 2
         // - slay 1 vs 2
         // check who will win
- use sui::coin::{Self};
+        use sui::coin::{Self};
         use sui::test_scenario;
         use game_hero::hero::{Self, GameInfo, Hero};
 
@@ -202,13 +208,21 @@ module game_hero::hero_test {
             let coin_2 = coin::mint_for_testing(100, test_scenario::ctx(scenario));
             hero::acquire_hero(game_ref, coin_2, test_scenario::ctx(scenario));
 
-            let hero1 =  test_scenario::take_from_sender<Hero>(scenario);
+            test_scenario::return_immutable(game);
+        };
+
+         test_scenario::next_tx(scenario, player);
+        {
+            let game = test_scenario::take_immutable<GameInfo>(scenario);
+            let game_ref = &game;
+            // Cause it get recently first, so hero2 can be get first
             let hero2 =  test_scenario::take_from_sender<Hero>(scenario);
+            let hero1 =  test_scenario::take_from_sender<Hero>(scenario);
 
             let hero1_ref_mut = &mut hero1;
             let hero2_ref_mut = &mut hero2;
 
-            hero::p2p_play(game_ref, hero1_ref_mut, hero2_ref_mut,test_scenario::ctx(scenario));
+            assert!(hero::p2p_play(game_ref, hero1_ref_mut, hero2_ref_mut,test_scenario::ctx(scenario)) == 2, 1);
 
             test_scenario::return_to_sender<Hero>(scenario,hero1);
             test_scenario::return_to_sender<Hero>(scenario,hero2);

@@ -115,7 +115,7 @@ module game_hero::hero {
         object::delete(monster_id);
     }
 
-    public entry fun p2p_play(game: &GameInfo, hero1: &mut Hero, hero2: &mut Hero, _ctx: &TxContext) {
+    public entry fun p2p_play(game: &GameInfo, hero1: &mut Hero, hero2: &mut Hero, _ctx: &TxContext): u64 {
         assert!(object::id(game) == hero1.game_id, 403);
         assert!(object::id(game) == hero2.game_id, 403);
         let hero1_hp = hero1.hp;
@@ -127,16 +127,17 @@ module game_hero::hero {
                 hero1_hp = hero1_hp - hero2_strength;
             } else {
                 destroy_hero(game, hero1);
-                abort EHero2Won
+                return EHero2Won
             };
 
             if (hero2_hp > hero1_strength) {
                 hero2_hp = hero2_hp - hero1_strength;
             } else {
                 destroy_hero(game, hero2);
-                abort EHero1Won       
+                return EHero1Won       
             }   
         };
+        0
     }
 
 
