@@ -2,21 +2,21 @@
 module lesson9::flash_lender {
     struct FlashLender<phantom T> has key {
         id: UID,
-        /// Số lượng coin được phép vay
+        /// borrowable amount
         to_lend: Balance<T>,
         fee: u64,
     }
 
-    /// Đây là struct không có key và store, nên nó sẽ không được transfer và không được lưu trữ bền vững. và nó cũng không có drop nên cách duy nhất để xoá nó làm gọi hàm repay.
-    /// Đây là cái chúng ta muốn cho một gói vay.
+
+    /// This struct has not key and store, it is not transferable and store. It also has not drop, using `repay` to delete it
     struct Receipt<phantom T> {
         flash_lender_id: ID,
         repay_amount: u64
     }
 
-    /// Một đối tượng truyền đạt đặc quyền rút tiền và gửi tiền vào
-    /// trường hợp của `FlashLender` có ID `flash_lender_id`. Ban đầu được cấp cho người tạo của `FlashLender`
-    /// và chỉ tồn tại một `AdminCap` duy nhất cho mỗi nhà cho vay.
+    /// In case `FlashLender` has ID `flash_lender_id`. 
+    /// Initially, it assigns to creator of `FlashLender`
+    /// And have only one `AdminCap` for lender
     struct AdminCap has key, store {
         id: UID,
         flash_lender_id: ID,
@@ -24,33 +24,33 @@ module lesson9::flash_lender {
 
     // === Creating a flash lender ===
 
-    /// Tạo một đối tượng `FlashLender` chia sẻ làm cho `to_lend` có sẵn để vay
-    /// Bất kỳ người vay nào sẽ cần trả lại số tiền đã vay và `fee` trước khi kết thúc giao dịch hiện tại.
+    /// Create `FlashLender` and share to make `to_lend`
+    /// Anyone has to repay the money and fee before transaction ended
     public fun new<T>(to_lend: Balance<T>, fee: u64, ctx: &mut TxContext): AdminCap {}
 
-    /// Giống như `new`, nhưng chuyển `AdminCap` cho người gửi giao dịch
+    /// The same with `new` function but transfer `AdminCap` to caller
     public entry fun create<T>(to_lend: Coin<T>, fee: u64, ctx: &mut TxContext) {}
 
-   /// Yêu cầu một khoản vay với `amount` từ `lender`. `Receipt<T>`
-   /// đảm bảo rằng người vay sẽ gọi `repay(lender, ...)` sau này trong giao dịch này.
-   /// Hủy bỏ nếu `amount` lớn hơn số tiền mà `lender` có sẵn để cho vay.
+   /// Request a loan with `amount`
+   /// Make sure call `repay` to lender in current transaction
+   /// Abort if `amount` higher than amount of `lender` 's borrowable amount
     public fun loan<T>(
         self: &mut FlashLender<T>, amount: u64, ctx: &mut TxContext
     ): (Coin<T>, Receipt<T>) {
     }
 
-   /// Trả lại khoản vay được ghi lại bởi `receipt` cho `lender` với `payment`.
-   /// Hủy bỏ nếu số tiền trả lại không chính xác hoặc `lender` không phải là `FlashLender` đã cấp khoản vay ban đầu.
+   /// Repay a loan from `receipt` to `lender` with `payment` amount
+   /// Abort when repay amount invalid or `lender` is not `FlashLender`
     public fun repay<T>(self: &mut FlashLender<T>, payment: Coin<T>, receipt: Receipt<T>) {}
 
-    /// Cho phép quản trị viên của `self` rút tiền.
+    /// `self` withdrawal
     public fun withdraw<T>(self: &mut FlashLender<T>, admin_cap: &AdminCap, amount: u64, ctx: &mut TxContext): Coin<T> {}
 
+    // Only owner of `AdminCap` for `self` can deposit
     public entry fun deposit<T>(self: &mut FlashLender<T>, admin_cap: &AdminCap, coin: Coin<T>) {
-        // Chỉ có chủ sở hữu của `AdminCap` cho `self` mới có thể gửi tiền vào.
     }
 
-    /// Cho phép quản trị viên cập nhật phí cho `self`.
+    /// Owner can update fee
     public entry fun update_fee<T>(self: &mut FlashLender<T>, admin_cap: &AdminCap, new_fee: u64) {}
 
     fun check_admin<T>(self: &FlashLender<T>, admin_cap: &AdminCap) {
@@ -61,12 +61,12 @@ module lesson9::flash_lender {
     /// Return the current fee for `self`
     public fun fee<T>(self: &FlashLender<T>): u64 {}
 
-    /// Trả về số tiền tối đa có sẵn để mượn.
+    /// returns max borrowable from `self`
     public fun max_loan<T>(self: &FlashLender<T>): u64 {}
 
-    /// Trả về số tiền mà người giữ `self` phải trả lại.
+    /// Return amount that `self` has to repay
     public fun repay_amount<T>(self: &Receipt<T>): u64 {}
 
-    /// Trả về số tiền mà người giữ `self` phải trả lại.
+    /// Return Id of `self`
     public fun flash_lender_id<T>(self: &Receipt<T>): ID {}
 }
