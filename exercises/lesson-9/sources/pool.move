@@ -1,12 +1,21 @@
 /// A flash loan that works for any Coin type
 module lesson9::flash_lender {
+    use sui::object::{Self, UID, ID};
+    use sui::tx_context::{Self, TxContext};
+    use sui::coin::{Self, Coin};
+    use sui::balance::{Self, Balance, Supply};
+    use sui::sui::SUI;
+    use sui::transfer;
+    use sui::event;
+
     struct FlashLender<phantom T> has key {
         id: UID,
         /// borrowable amount
         to_lend: Balance<T>,
         fee: u64,
     }
-
+    /// ERROR
+    const EAdminOnly: u64 = 1;
 
     /// This struct has not key and store, it is not transferable and store. It also has not drop, using `repay` to delete it
     struct Receipt<phantom T> {
