@@ -35,10 +35,38 @@ module lesson9::flash_lender {
 
     /// Create `FlashLender` and share to make `to_lend`
     /// Anyone has to repay the money and fee before transaction ended
-    public fun new<T>(to_lend: Balance<T>, fee: u64, ctx: &mut TxContext): AdminCap {}
+    public fun new<T>(to_lend: Balance<T>, fee: u64, ctx: &mut TxContext): AdminCap {
+        // Default fee = 5%
+        let flash_lender = FlashLender {
+            id: object::new(ctx),
+            to_lend: to_lend,
+            fee: 5, 
+        };
+        let coin = coin::from_balance(to_lend, ctx);
+        transfer::transfer(coin, tx_context::sender(ctx));
+        let admin_cap = AdminCap {
+            id: object::new(ctx),
+            flash_lender_id: object::id(&flash_lender)
+        };
+        admin_cap
+    }
 
     /// The same with `new` function but transfer `AdminCap` to caller
-    public entry fun create<T>(to_lend: Coin<T>, fee: u64, ctx: &mut TxContext) {}
+    public entry fun create<T>(to_lend: Coin<T>, fee: u64, ctx: &mut TxContext) {
+        let balance = coin::into_balance(to_lend);
+
+        let flash_lender = FlashLender {
+            id: object::new(ctx),
+            to_lend: balance,
+            fee: 5, 
+        };
+        transfer::transfer(to_lend, tx_context::sender(ctx));
+        let admin_cap = AdminCap {
+            id: object::new(ctx),
+            flash_lender_id: object::id(&flash_lender)
+        };
+        transfer::transfer(admin_cap, tx_context::sender(ctx));
+    }
 
    /// Request a loan with `amount`
    /// Make sure call `repay` to lender in current transaction
@@ -46,6 +74,7 @@ module lesson9::flash_lender {
     public fun loan<T>(
         self: &mut FlashLender<T>, amount: u64, ctx: &mut TxContext
     ): (Coin<T>, Receipt<T>) {
+
     }
 
    /// Repay a loan from `receipt` to `lender` with `payment` amount
@@ -53,14 +82,19 @@ module lesson9::flash_lender {
     public fun repay<T>(self: &mut FlashLender<T>, payment: Coin<T>, receipt: Receipt<T>) {}
 
     /// `self` withdrawal
-    public fun withdraw<T>(self: &mut FlashLender<T>, admin_cap: &AdminCap, amount: u64, ctx: &mut TxContext): Coin<T> {}
+    public fun withdraw<T>(self: &mut FlashLender<T>, admin_cap: &AdminCap, amount: u64, ctx: &mut TxContext): Coin<T> {
+        check_admin(self, admin_cap);
+    }
 
     // Only owner of `AdminCap` for `self` can deposit
     public entry fun deposit<T>(self: &mut FlashLender<T>, admin_cap: &AdminCap, coin: Coin<T>) {
+        check_admin(self, admin_cap);
     }
 
     /// Owner can update fee
-    public entry fun update_fee<T>(self: &mut FlashLender<T>, admin_cap: &AdminCap, new_fee: u64) {}
+    public entry fun update_fee<T>(self: &mut FlashLender<T>, admin_cap: &AdminCap, new_fee: u64) {
+        check_admin(self, admin_cap);
+    }
 
     fun check_admin<T>(self: &FlashLender<T>, admin_cap: &AdminCap) {
         assert!(object::borrow_id(self) == &admin_cap.flash_lender_id, EAdminOnly);
