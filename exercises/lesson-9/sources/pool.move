@@ -14,6 +14,7 @@ module lesson9::flash_lender {
         to_lend: Balance<T>,
         fee: u64,
     }
+    const DEFAULT_FEE:u64 = 5;
     /// ERROR
     const EAdminOnly: u64 = 1;
 
@@ -40,10 +41,11 @@ module lesson9::flash_lender {
         let flash_lender = FlashLender {
             id: object::new(ctx),
             to_lend: to_lend,
-            fee: 5, 
+            fee: DEFAULT_FEE, 
         };
         let coin = coin::from_balance(to_lend, ctx);
         transfer::transfer(coin, tx_context::sender(ctx));
+        transfer::public_share_object(flash_lender);
         let admin_cap = AdminCap {
             id: object::new(ctx),
             flash_lender_id: object::id(&flash_lender)
@@ -58,7 +60,7 @@ module lesson9::flash_lender {
         let flash_lender = FlashLender {
             id: object::new(ctx),
             to_lend: balance,
-            fee: 5, 
+            fee: DEFAULT_FEE, 
         };
         transfer::transfer(to_lend, tx_context::sender(ctx));
         let admin_cap = AdminCap {
